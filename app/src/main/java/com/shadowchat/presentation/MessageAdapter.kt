@@ -1,0 +1,38 @@
+package com.shadowchat.presentation
+
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.shadowchat.R
+import com.shadowchat.domain.model.ChatMessage
+
+class MessageAdapter : ListAdapter<ChatMessage, MessageViewHolder>(DiffCallback) {
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_message, parent, false)
+        return MessageViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
+
+    private object DiffCallback : DiffUtil.ItemCallback<ChatMessage>() {
+        override fun areItemsTheSame(oldItem: ChatMessage, newItem: ChatMessage): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: ChatMessage, newItem: ChatMessage): Boolean = oldItem == newItem
+    }
+}
+
+class MessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    private val messageView: TextView = itemView.findViewById(R.id.textMessage)
+    private val metaView: TextView = itemView.findViewById(R.id.textMeta)
+
+    fun bind(message: ChatMessage) {
+        messageView.text = message.text
+        metaView.text = message.meta
+    }
+}

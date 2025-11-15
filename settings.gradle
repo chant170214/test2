@@ -1,0 +1,2 @@
+rootProject.name = "ShadowChat"
+include(":app")
