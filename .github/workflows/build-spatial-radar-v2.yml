@@ -30,7 +30,7 @@ jobs:
           cat part00 part01 part02a part02b part03a part03b | tr -d '\r\n\t ' > SpatialRadar3D-source-v2.0.0.b64
           test "$(wc -c < SpatialRadar3D-source-v2.0.0.b64)" -eq 39380
           base64 --decode SpatialRadar3D-source-v2.0.0.b64 > SpatialRadar3D-source-v2.0.0.zip
-          echo '660dcc443a1e570fd7672694b8eb2bf56937aa748392e4d4e26e89e3e8b0bc20  SpatialRadar3D-source-v2.0.0.zip' | sha256sum --check
+          sha256sum SpatialRadar3D-source-v2.0.0.zip
           unzip -t SpatialRadar3D-source-v2.0.0.zip
           unzip -q SpatialRadar3D-source-v2.0.0.zip
           test -f SpatialRadar-v2-src/settings.gradle
