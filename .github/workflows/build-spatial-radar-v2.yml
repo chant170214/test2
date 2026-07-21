@@ -21,17 +21,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location \
-            'https://raw.githubusercontent.com/chant170214/test2/spatial-radar-v2-build/build_payload/part00' \
-            --output part00
-          curl --fail --silent --show-error --location \
-            'https://raw.githubusercontent.com/chant170214/test2/spatial-radar-v2-build/build_payload/part01' \
-            --output part01
-          wc -c part00 part01
-          cat part00 part01 | tr -d '\r\n\t ' > SpatialRadar3D-source-v2.0.0.b64
-          wc -c SpatialRadar3D-source-v2.0.0.b64
+          for part in part00 part01 part02a part02b part03a part03b; do
+            curl --fail --silent --show-error --location \
+              "https://raw.githubusercontent.com/chant170214/test2/spatial-radar-v2-build/build_payload/${part}" \
+              --output "${part}"
+          done
+          wc -c part00 part01 part02a part02b part03a part03b
+          cat part00 part01 part02a part02b part03a part03b | tr -d '\r\n\t ' > SpatialRadar3D-source-v2.0.0.b64
+          test "$(wc -c < SpatialRadar3D-source-v2.0.0.b64)" -eq 39380
           base64 --decode SpatialRadar3D-source-v2.0.0.b64 > SpatialRadar3D-source-v2.0.0.zip
-          sha256sum SpatialRadar3D-source-v2.0.0.zip
+          echo '660dcc443a1e570fd7672694b8eb2bf56937aa748392e4d4e26e89e3e8b0bc20  SpatialRadar3D-source-v2.0.0.zip' | sha256sum --check
           unzip -t SpatialRadar3D-source-v2.0.0.zip
           unzip -q SpatialRadar3D-source-v2.0.0.zip
           test -f SpatialRadar-v2-src/settings.gradle
