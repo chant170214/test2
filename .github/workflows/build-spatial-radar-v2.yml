@@ -26,7 +26,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat build_payload/part00 build_payload/part01 | base64 --decode > SpatialRadar3D-source-v2.0.0.zip
+          wc -c build_payload/part00 build_payload/part01
+          cat build_payload/part00 build_payload/part01 | tr -d '\r\n\t ' > SpatialRadar3D-source-v2.0.0.b64
+          test "$(wc -c < SpatialRadar3D-source-v2.0.0.b64)" -eq 39380
+          base64 --decode SpatialRadar3D-source-v2.0.0.b64 > SpatialRadar3D-source-v2.0.0.zip
+          echo '660dcc443a1e570fd7672694b8eb2bf56937aa748392e4d4e26e89e3e8b0bc20  SpatialRadar3D-source-v2.0.0.zip' | sha256sum --check
           unzip -t SpatialRadar3D-source-v2.0.0.zip
           unzip -q SpatialRadar3D-source-v2.0.0.zip
           test -f SpatialRadar-v2-src/settings.gradle
