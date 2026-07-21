@@ -1,0 +1,84 @@
+name: Build Spatial Radar 3D v2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build-spatial-radar-v2.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout build payload branch
+        uses: actions/checkout@v4
+        with:
+          ref: spatial-radar-v2-build
+
+      - name: Restore source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat build_payload/part00 build_payload/part01 | base64 --decode > SpatialRadar3D-source-v2.0.0.zip
+          unzip -t SpatialRadar3D-source-v2.0.0.zip
+          unzip -q SpatialRadar3D-source-v2.0.0.zip
+          test -f SpatialRadar-v2-src/settings.gradle
+          test -f SpatialRadar-v2-src/app/build.gradle
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        working-directory: SpatialRadar-v2-src
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='SpatialRadar-v2-src/app/build/outputs/apk/debug/app-debug.apk'
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)"
+          "$AAPT" dump badging "$APK" | tee badging.txt
+          "$AAPT" dump permissions "$APK" | tee permissions.txt
+          grep -q "package: name='jp.rento.spatialradar3d'" badging.txt
+          ! grep -q 'android.permission.INTERNET' permissions.txt
+          ! grep -q 'android.permission.ACCESS_NETWORK_STATE' permissions.txt
+          cp "$APK" SpatialRadar-3D-Pixel7a-v2.0.0.apk
+          sha256sum SpatialRadar-3D-Pixel7a-v2.0.0.apk > SpatialRadar-3D-Pixel7a-v2.0.0.sha256.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpatialRadar-3D-Pixel7a-v2.0.0
+          path: |
+            SpatialRadar-3D-Pixel7a-v2.0.0.apk
+            SpatialRadar-3D-Pixel7a-v2.0.0.sha256.txt
+            permissions.txt
+            badging.txt
+          if-no-files-found: error
+          retention-days: 14
