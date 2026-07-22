@@ -1,12 +1,10 @@
-name: Build Spatial Radar 3D v2
+name: Build Spatial Radar 3D v2.1
 
 on:
   push:
     branches: [ main ]
     paths:
       - '.github/workflows/build-spatial-radar-v2.yml'
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -15,9 +13,9 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
-      - name: Download source payload
+      - name: Restore v2.0 source base
         shell: bash
         run: |
           set -euo pipefail
@@ -26,15 +24,29 @@ jobs:
               "https://raw.githubusercontent.com/chant170214/test2/spatial-radar-v2-build/build_payload/${part}" \
               --output "${part}"
           done
-          wc -c part00 part01 part02a part02b part03a part03b
-          cat part00 part01 part02a part02b part03a part03b | tr -d '\r\n\t ' > SpatialRadar3D-source-v2.0.0.b64
-          test "$(wc -c < SpatialRadar3D-source-v2.0.0.b64)" -eq 39380
-          base64 --decode SpatialRadar3D-source-v2.0.0.b64 > SpatialRadar3D-source-v2.0.0.zip
-          sha256sum SpatialRadar3D-source-v2.0.0.zip
-          unzip -t SpatialRadar3D-source-v2.0.0.zip
-          unzip -q SpatialRadar3D-source-v2.0.0.zip
+          cat part00 part01 part02a part02b part03a part03b | tr -d '\r\n\t ' > source-v20.b64
+          test "$(wc -c < source-v20.b64)" -eq 39380
+          base64 --decode source-v20.b64 > source-v20.zip
+          unzip -t source-v20.zip
+          unzip -q source-v20.zip
           test -f SpatialRadar-v2-src/settings.gradle
-          test -f SpatialRadar-v2-src/app/build.gradle
+
+      - name: Apply v2.1 reconstruction patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://raw.githubusercontent.com/chant170214/test2/spatial-radar-v2-build/build_payload/v21'
+          JAVA_DIR='SpatialRadar-v2-src/app/src/main/java/jp/rento/spatialradar3d'
+          for file in VoxelMap.java MeshRenderer.java MainActivity.java; do
+            curl --fail --silent --show-error --location "$BASE/${file}.gz.b64" --output "${file}.gz.b64"
+            base64 --decode "${file}.gz.b64" | gzip -dc > "$JAVA_DIR/$file"
+          done
+          curl --fail --silent --show-error --location "$BASE/build.gradle.gz.b64" --output build.gradle.gz.b64
+          base64 --decode build.gradle.gz.b64 | gzip -dc > SpatialRadar-v2-src/app/build.gradle
+          grep -q "versionName '2.1.0'" SpatialRadar-v2-src/app/build.gradle
+          grep -q 'carveRay' "$JAVA_DIR/VoxelMap.java"
+          grep -q 'setDevicePose' "$JAVA_DIR/MeshRenderer.java"
+          grep -q 'ライブ3Dマップ' "$JAVA_DIR/MainActivity.java"
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -70,18 +82,19 @@ jobs:
           "$AAPT" dump badging "$APK" | tee badging.txt
           "$AAPT" dump permissions "$APK" | tee permissions.txt
           grep -q "package: name='jp.rento.spatialradar3d'" badging.txt
+          grep -q "versionName='2.1.0'" badging.txt
           ! grep -q 'android.permission.INTERNET' permissions.txt
           ! grep -q 'android.permission.ACCESS_NETWORK_STATE' permissions.txt
-          cp "$APK" SpatialRadar-3D-Pixel7a-v2.0.0.apk
-          sha256sum SpatialRadar-3D-Pixel7a-v2.0.0.apk > SpatialRadar-3D-Pixel7a-v2.0.0.sha256.txt
+          cp "$APK" SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0.apk
+          sha256sum SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0.apk > SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0.sha256.txt
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SpatialRadar-3D-Pixel7a-v2.0.0
+          name: SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0
           path: |
-            SpatialRadar-3D-Pixel7a-v2.0.0.apk
-            SpatialRadar-3D-Pixel7a-v2.0.0.sha256.txt
+            SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0.apk
+            SpatialRadar-3D-LiveMap-Pixel7a-v2.1.0.sha256.txt
             permissions.txt
             badging.txt
           if-no-files-found: error
