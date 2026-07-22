@@ -1,0 +1,1 @@
+Trigger structural ZIP validation and APK build.
